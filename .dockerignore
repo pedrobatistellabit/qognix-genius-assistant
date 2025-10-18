@@ -1,0 +1,61 @@
+# Node modules
+node_modules/
+frontend/node_modules/
+**/node_modules/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Build outputs
+frontend/dist/
+frontend/build/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+backend/src/database/*.db
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# Environment
+.env.local
+.env.development
+.env.test
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
