@@ -4,6 +4,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from flask import Flask, send_from_directory
+from flask_cors import CORS
 from src.models.user import db
 from src.routes.user import user_bp
 from src.routes.whatsapp import whatsapp_bp
@@ -11,6 +12,9 @@ from src.routes.supabase_integration import supabase_bp
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
 app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
+
+# Configurar CORS
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Registrar blueprints
 app.register_blueprint(user_bp, url_prefix='/api')
@@ -42,4 +46,5 @@ def serve(path):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False, threaded=True)
+

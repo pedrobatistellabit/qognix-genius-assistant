@@ -10,17 +10,27 @@ supabase_bp = Blueprint('supabase', __name__)
 SUPABASE_URL = os.getenv('SUPABASE_URL', 'https://your-project.supabase.co')
 SUPABASE_KEY = os.getenv('SUPABASE_ANON_KEY', 'your-anon-key')
 
-# Inicializar cliente Supabase
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Inicializar cliente Supabase (opcional)
+try:
+    if SUPABASE_URL and SUPABASE_KEY and SUPABASE_URL != 'https://your-project.supabase.co':
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    else:
+        supabase = None
+except Exception as e:
+    print(f"Supabase não configurado: {e}")
+    supabase = None
 
 class SupabaseManager:
     """Gerenciador das operações com Supabase"""
     
     def __init__(self):
         self.supabase = supabase
+        self.enabled = supabase is not None
     
     def save_user_interaction(self, phone_number, user_message, bot_response, interaction_type='chat'):
         """Salva interação do usuário no Supabase"""
+        if not self.enabled:
+            return None
         try:
             data = {
                 'phone_number': phone_number,
@@ -43,6 +53,8 @@ class SupabaseManager:
     
     def get_user_history(self, phone_number, limit=50):
         """Recupera histórico de conversas do usuário"""
+        if not self.enabled:
+            return []
         try:
             result = self.supabase.table('user_interactions')\
                 .select('*')\
@@ -59,6 +71,8 @@ class SupabaseManager:
     
     def save_generated_content(self, phone_number, content_type, content, metadata=None):
         """Salva conteúdo gerado pelo assistente"""
+        if not self.enabled:
+            return None
         try:
             data = {
                 'phone_number': phone_number,
@@ -77,6 +91,8 @@ class SupabaseManager:
     
     def get_user_stats(self, phone_number):
         """Recupera estatísticas do usuário"""
+        if not self.enabled:
+            return {}
         try:
             # Total de interações
             interactions = self.supabase.table('user_interactions')\
@@ -108,6 +124,8 @@ class SupabaseManager:
     
     def save_user_preferences(self, phone_number, preferences):
         """Salva preferências do usuário"""
+        if not self.enabled:
+            return None
         try:
             data = {
                 'phone_number': phone_number,
@@ -128,6 +146,8 @@ class SupabaseManager:
     
     def get_user_preferences(self, phone_number):
         """Recupera preferências do usuário"""
+        if not self.enabled:
+            return {}
         try:
             result = self.supabase.table('user_preferences')\
                 .select('*')\
