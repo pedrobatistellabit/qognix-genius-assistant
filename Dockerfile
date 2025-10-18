@@ -1,50 +1,61 @@
 # Multi-stage build para Qognix Genius Assistant
 FROM node:22-alpine AS frontend-builder
 
-# Instalar pnpm
-RUN npm install -g pnpm
-
-# Copiar arquivos do frontend
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
 
-# Copiar código fonte e fazer build
+# Copiar package files
+COPY frontend/package*.json ./
+COPY frontend/pnpm-lock.yaml ./
+
+# Instalar pnpm e dependências
+RUN npm install -g pnpm && \
+    pnpm install --frozen-lockfile
+
+# Copiar código fonte do frontend
 COPY frontend/ ./
+
+# Build do frontend
 RUN pnpm run build
 
 # Stage 2: Backend Python
 FROM python:3.11-slim
 
+WORKDIR /app
+
 # Instalar dependências do sistema
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Criar diretório de trabalho
-WORKDIR /app
+# Copiar requirements
+COPY backend/requirements.txt ./
 
-# Copiar requirements e instalar dependências Python
-COPY requirements.txt ./
+# Instalar dependências Python
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar código do backend
 COPY backend/ ./backend/
 
-# Copiar build do frontend para pasta static
-COPY --from=frontend-builder /app/frontend/dist ./backend/src/static
+# Copiar build do frontend para static
+COPY --from=frontend-builder /app/frontend/dist ./backend/static/
 
-# Criar diretório para banco de dados
-RUN mkdir -p /app/backend/src/database
+# Criar diretórios necessários
+RUN mkdir -p /app/backend/src/database && \
+    chmod -R 755 /app/backend
+
+# Criar arquivo .env com configurações padrão
+RUN echo "FLASK_ENV=production\nSECRET_KEY=change-this-in-production\nDATABASE_URL=sqlite:///./src/database/qognix.db" > /app/backend/.env
+
+WORKDIR /app/backend
 
 # Expor porta
 EXPOSE 5000
 
-# Variáveis de ambiente padrão
-ENV FLASK_APP=backend/src/main.py
-ENV PYTHONUNBUFFERED=1
-ENV PORT=5000
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD python -c "import requests; requests.get('http://localhost:5000/api/health', timeout=5)" || exit 1
 
-# Comando de inicialização
-CMD cd backend && gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 src.main:app
+# Comando para iniciar (usando python direto para debug)
+CMD ["python", "-m", "gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "src.main:app"]
 
